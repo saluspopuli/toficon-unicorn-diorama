@@ -35,6 +35,7 @@ export class BleLink {
   get connected() { return !!(this.device && this.device.gatt && this.device.gatt.connected); }
 
   async connect() {
+    this.stage = 'choosing the device';
     this.device = await navigator.bluetooth.requestDevice({
       filters: [{ services: [SERVICE] }, { namePrefix: 'HC-' }, { namePrefix: 'Unicorn' }],
       optionalServices: [SERVICE],
@@ -43,22 +44,40 @@ export class BleLink {
     this.device.addEventListener('gattserverdisconnected', () => {
       if (this.onDisconnect) this.onDisconnect();
     });
+    const onValue = (e) => this._onData(e.target.value);
     let lastErr;
     for (let attempt = 0; attempt < 3; attempt++) {     // the first try often fails
       try {
+        this.stage = 'connecting';
         const server = await this.device.gatt.connect();
+        this.stage = 'finding the serial service (FFE0)';
         const svc = await server.getPrimaryService(SERVICE);
+        this.stage = 'finding the receive channel (FFE1)';
+        // a failed earlier attempt may have left its listener: never listen twice, or every
+        // byte would arrive twice and no answer would make sense
+        if (this.rxChar) this.rxChar.removeEventListener('characteristicvaluechanged', onValue);
         this.rxChar = await svc.getCharacteristic(CHAR_RX);
         try { this.txChar = await svc.getCharacteristic(CHAR_TX); } catch { this.txChar = this.rxChar; }
-        this.rxChar.addEventListener('characteristicvaluechanged', (e) => this._onData(e.target.value));
+        this.writeMode = this.txChar.writeValueWithoutResponse ? 'without response' : 'with response';
+        this.stage = 'starting notifications';
+        this.rxChar.removeEventListener('characteristicvaluechanged', onValue);
+        this.rxChar.addEventListener('characteristicvaluechanged', onValue);
         await this.rxChar.startNotifications();
+        this.stage = 'waiting for the Arduino to answer';
         return;
       } catch (e) {
         lastErr = e;
+        try { if (this.device.gatt.connected) this.device.gatt.disconnect(); } catch { /* ignore */ }
         await sleep(800);
       }
     }
     throw lastErr;
+  }
+
+  // one line describing where a failed connection got stuck, for the error message
+  describe(e) {
+    const what = e ? `${e.name && e.name !== 'Error' ? e.name + ': ' : ''}${e.message || e}` : '';
+    return `step: ${this.stage || '?'}${this.writeMode ? `, writes ${this.writeMode}` : ''}${what ? ' — ' + what : ''}`;
   }
 
   disconnect() {
