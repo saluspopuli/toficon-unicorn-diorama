@@ -147,7 +147,16 @@ export function lastKeyTime(anim) {
   return t;
 }
 
-// Length of the show: the music, or the last key plus a short hold
+// A show stops this long after its last key, even if the music is longer
+export const SHOW_TAIL_S = 10;
+
+// When playback ends: SHOW_TAIL_S after the last key (an animation without keys plays its music)
+export function showEnd(anim, audioLength = 0) {
+  const hasKeys = anim.lanes.some((l) => l.length);
+  return hasKeys ? lastKeyTime(anim) + SHOW_TAIL_S : duration(anim, audioLength);
+}
+
+// Length of the timeline in the editor: the music, or the last key plus a short hold
 export function duration(anim, audioLength = 0) {
   const off = anim.audio ? anim.audio.offset : 0;
   return Math.max(lastKeyTime(anim) + 1, audioLength ? off + audioLength : 0, 1);

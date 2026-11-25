@@ -6,7 +6,9 @@
 // slightly ahead to make up for Bluetooth / audio output delay.
 
 import { ms } from './protocol.js';
-import { toSegments, duration } from './animation.js';
+import { toSegments, showEnd } from './animation.js';
+
+const MUSIC_FADE_S = 2;   // the music fades out over the last seconds of a show
 
 const sleep = (t) => new Promise((r) => setTimeout(r, t));
 
@@ -50,11 +52,13 @@ export class Player {
     this.off = off;
     if (this.useAudio) {
       this.unlockAudio(url);
-      this.audio.volume = Math.max(0, Math.min(1, (anim.audio.volume ?? 100) / 100));
+      this.volume = Math.max(0, Math.min(1, (anim.audio.volume ?? 100) / 100));
+      this.audio.volume = this.volume;
       await waitMeta(this.audio);
     }
     if (token !== this.token) return;
-    this.end = duration(anim, this.useAudio ? this.audio.duration || 0 : 0);
+    // ends 10 s after the last key, not at the end of a longer song
+    this.end = showEnd(anim, this.useAudio ? this.audio.duration || 0 : 0);
 
     if (ob) {
       ob.posAt = null;
@@ -113,6 +117,9 @@ export class Player {
           const err = this.off + a.currentTime - t;       // seconds; + = music is ahead
           if (Math.abs(err) > 0.3) this.base -= err * 1000;
           else if (Math.abs(err) > 0.02) this.base -= err * 1000 * 0.1;
+          // fade the music out instead of cutting it off mid-song
+          const left = this.end - t;
+          try { a.volume = this.volume * Math.max(0, Math.min(1, left / MUSIC_FADE_S)); } catch { /* iOS: volume is read-only */ }
         }
       }
       if (t >= this.end) {

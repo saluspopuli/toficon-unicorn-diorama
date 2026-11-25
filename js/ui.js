@@ -3,7 +3,7 @@
 import { BleLink, SimLink, bluetoothAvailable } from './ble.js';
 import { Onboard } from './protocol.js';
 import { ZONES } from './engine.js';
-import { LANES, BODY, EYES, UNI_EYE, SHIELD, newAnimation, fromData, toData, evalAll, duration } from './animation.js';
+import { LANES, BODY, EYES, UNI_EYE, SHIELD, newAnimation, fromData, toData, evalAll, showEnd } from './animation.js';
 import { Player } from './player.js';
 import { Editor, audioPeaks } from './editor.js';
 import { Preview } from './preview.js';
@@ -475,7 +475,7 @@ function showButton(title, sub) {
 
 function describe(anim) {
   const keys = anim.lanes.reduce((n, l) => n + l.length, 0);
-  const len = duration(anim);
+  const len = showEnd(anim);
   return `${fmt(len)} · ${keys} keys${anim.audio && anim.audio.name ? ' · ♪ ' + anim.audio.name : ''}`;
 }
 
