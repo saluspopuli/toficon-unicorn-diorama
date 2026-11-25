@@ -146,12 +146,19 @@ async function connect() {
     resendAll();
   } catch (e) {
     console.warn(e);
-    const cancelled = e && e.name === 'NotFoundError';
+    const cancelled = e && e.name === 'NotFoundError' && (!link || link.stage === 'choosing the device');
+    const detail = link && link.describe ? link.describe(e) : String((e && e.message) || e);
     setStatus('Not connected');
     if (link && link.disconnect) try { link.disconnect(); } catch { /* ignore */ }
     link = null; ob = null;
-    if (!cancelled) toast('Could not connect. If the diorama is not in the list, someone else is using it. Try again in a minute.', 6000);
-    else toast('If the diorama is not in the list, someone else is connected. Try again in a minute.', 6000);
+    if (!cancelled) {
+      toast('Could not connect. If the diorama is not in the list, someone else is using it. Try again in a minute.', 6000);
+      const n = $('#notice');                 // keep the details on screen for troubleshooting
+      n.textContent = 'Connection problem (' + detail + ')';
+      n.hidden = false;
+    } else {
+      toast('If the diorama is not in the list, someone else is connected. Try again in a minute.', 6000);
+    }
   } finally {
     btn.disabled = false;
   }
