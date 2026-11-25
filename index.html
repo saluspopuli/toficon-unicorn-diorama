@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0d0f14">
+  <title>Unicorn Diorama</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><path d='M16 2 11 12h10z' fill='%23ff3355'/><rect x='9' y='12' width='14' height='12' rx='4' fill='%23ff3355'/><rect x='12' y='16' width='8' height='2' rx='1' fill='%2333ff77'/></svg>">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="top">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true"></span>
+      <div>
+        <h1>Unicorn Diorama</h1>
+        <p class="status" id="status">Not connected</p>
+      </div>
+    </div>
+    <button id="connect" class="primary">Connect</button>
+  </header>
+
+  <div id="notice" class="notice" hidden></div>
+
+  <main>
+    <section class="preview-card" id="preview" aria-label="Preview"></section>
+
+    <nav class="tabs" role="tablist">
+      <button role="tab" data-tab="live" aria-selected="true">Live</button>
+      <button role="tab" data-tab="shows" aria-selected="false">Shows</button>
+      <button role="tab" data-tab="create" aria-selected="false">Create</button>
+      <button role="tab" data-tab="admin" aria-selected="false" hidden>Admin</button>
+    </nav>
+
+    <!-- LIVE -->
+    <section class="panel" data-panel="live">
+      <div class="card">
+        <div class="card-head"><h2>Destroy mode</h2><span class="hint">psycho-frame &amp; eyes</span></div>
+        <div class="row">
+          <label class="color-pick">Body <input type="color" id="body-color"></label>
+          <div class="swatches" data-for="body"></div>
+        </div>
+        <div class="row"><label class="grow">Brightness <input type="range" id="body-pct" min="0" max="100"></label><output id="body-pct-o"></output></div>
+        <details class="zones">
+          <summary>Colour each zone</summary>
+          <div class="zone-grid" id="zone-grid"></div>
+        </details>
+        <div class="row">
+          <label class="color-pick">Eyes <input type="color" id="eye-color"></label>
+          <div class="swatches" data-for="eyes"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><h2>Unicorn mode</h2><span class="hint">green eye</span></div>
+        <div class="row"><label class="grow">Eye brightness <input type="range" id="uni" min="0" max="100"></label><output id="uni-o"></output></div>
+      </div>
+
+      <div class="card" id="shield-card">
+        <div class="card-head"><h2>Shield</h2><span class="hint">spin speed</span></div>
+        <p class="hint locked-note" id="shield-locked" hidden>The shield is switched off right now.</p>
+        <div class="row"><label class="grow">Speed <input type="range" id="speed" min="0" max="100"></label><output id="speed-o"></output></div>
+        <div class="row">
+          <label class="toggle"><input type="checkbox" id="reverse"> Reverse</label>
+          <span class="spacer"></span>
+          <button id="stop-shield">Stop</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- SHOWS -->
+    <section class="panel" data-panel="shows" hidden>
+      <div class="now-playing card" id="now-playing" hidden>
+        <div class="np-info"><strong id="np-title"></strong><span id="np-time"></span></div>
+        <div class="np-bar"><div id="np-fill"></div></div>
+        <button id="np-stop" class="danger">Stop</button>
+      </div>
+      <h2 class="list-title">Featured</h2>
+      <div class="show-list" id="show-list"><p class="hint">Loading…</p></div>
+      <h2 class="list-title">Made on this phone</h2>
+      <div class="show-list" id="my-list"></div>
+    </section>
+
+    <!-- CREATE -->
+    <section class="panel" data-panel="create" hidden>
+      <div class="card create-bar">
+        <input id="anim-title" class="title-input" aria-label="Animation name" maxlength="60">
+        <div class="row wrap">
+          <button id="c-new">New</button>
+          <select id="c-open" aria-label="Open an animation"><option value="">Open…</option></select>
+          <button id="c-save">Save</button>
+          <button id="c-export">Export</button>
+          <label class="file-btn">Import<input type="file" id="c-import" accept=".json,application/json" hidden></label>
+        </div>
+        <div class="row wrap">
+          <label>Music
+            <select id="c-music"><option value="">None</option></select>
+          </label>
+          <label class="file-btn">From phone…<input type="file" id="c-music-file" accept="audio/*" hidden></label>
+          <label>Start at <input type="number" id="c-offset" step="0.05" inputmode="decimal" class="num"> s</label>
+        </div>
+        <p class="hint" id="c-music-hint" hidden></p>
+        <div class="row wrap">
+          <label class="toggle"><input type="checkbox" id="c-loop"> Loop</label>
+          <label class="toggle"><input type="checkbox" id="c-mirror" checked> Show on diorama while editing</label>
+          <label>Light lead <input type="number" id="c-lead" step="5" class="num"> ms</label>
+        </div>
+      </div>
+      <div class="transport">
+        <button id="c-play" class="primary">▶ Play from cursor</button>
+        <button id="c-play0">⏮ From start</button>
+        <button id="c-stop" class="danger" disabled>■ Stop</button>
+      </div>
+      <div class="card editor-card" id="editor"></div>
+    </section>
+
+    <!-- ADMIN (opened by tapping the logo 5 times, or #admin in the address) -->
+    <section class="panel" data-panel="admin" hidden>
+      <div class="card">
+        <div class="card-head"><h2>Visitors</h2><span class="spacer"></span><button id="a-lock">Lock</button></div>
+        <div class="row"><label class="toggle"><input type="checkbox" id="a-shield"> Shield enabled</label></div>
+        <div class="form-grid">
+          <label>Time per visitor <span><input type="number" id="a-time" min="0" max="1092" step="0.5" class="num" inputmode="decimal"> min</span></label>
+          <label>Bluetooth off after time is up <span><input type="number" id="a-off" min="1" max="255" class="num" inputmode="numeric"> s</span></label>
+          <label>Back to idle after a visitor leaves <span><input type="number" id="a-idle-delay" min="0" max="65535" class="num" inputmode="numeric"> s</span></label>
+          <label>Disconnect after no taps for <span><input type="number" id="a-inactivity" min="0" max="86400" class="num" inputmode="numeric"> s</span></label>
+        </div>
+        <p class="hint">0 minutes = no time limit. 0 s for no taps = never disconnect. Admins (this panel unlocked) have no time limit.</p>
+      </div>
+      <div class="card">
+        <div class="card-head"><h2>Idle look</h2><span class="hint">when nobody is connected</span></div>
+        <div class="row">
+          <label class="color-pick">Body <input type="color" id="a-body"></label>
+          <label class="color-pick">Eyes <input type="color" id="a-eyes"></label>
+        </div>
+        <div class="row"><label class="grow">Unicorn eye <input type="range" id="a-uni" min="0" max="100"></label><output id="a-uni-o"></output></div>
+        <div class="row"><label class="grow">Shield speed <input type="range" id="a-sh" min="0" max="100"></label><output id="a-sh-o"></output></div>
+        <div class="row"><label class="toggle"><input type="checkbox" id="a-rev"> Reverse</label><span class="hint">The idle shield only turns when the shield is enabled.</span></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><h2>Featured shows</h2><span class="hint">visitors see the ticked ones</span></div>
+        <div id="a-shows" class="check-list"></div>
+      </div>
+      <div class="transport">
+        <button id="a-save" class="primary">Save settings</button>
+      </div>
+      <p class="hint" id="a-status"></p>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <span id="stats"></span>
+    <a href="?demo" id="demo-link">Try the demo (no Bluetooth)</a>
+  </footer>
+
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+  <audio id="audio" preload="auto"></audio>
+  <script type="module" src="js/ui.js"></script>
+</body>
+</html>
