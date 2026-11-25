@@ -152,7 +152,11 @@ async function connect() {
     if (link && link.disconnect) try { link.disconnect(); } catch { /* ignore */ }
     link = null; ob = null;
     if (!cancelled) {
-      toast('Could not connect. If the diorama is not in the list, someone else is using it. Try again in a minute.', 6000);
+      if (link && link.stage === 'choosing the device') {
+        toast('Could not open the Bluetooth list. Check that Bluetooth is on and this browser is allowed to use it (iPhone: Settings → Bluefy → Bluetooth). Details at the top of the page.', 9000);
+      } else {
+        toast('Could not connect. If the diorama is not in the list, someone else is using it. Try again in a minute.', 6000);
+      }
       const n = $('#notice');                 // keep the details on screen for troubleshooting
       n.textContent = 'Connection problem (' + detail + ')';
       n.hidden = false;

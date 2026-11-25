@@ -8,9 +8,11 @@
 
 import { Engine } from './engine.js';
 
-const SERVICE = 0xffe0;
-const CHAR_RX = 0xffe1;
-const CHAR_TX = 0xffe2;
+// Full 128-bit IDs: Chrome also takes the short numbers (0xFFE0), but Bluefy on iPhone may not.
+const uuid16 = (n) => `0000${n.toString(16)}-0000-1000-8000-00805f9b34fb`;
+const SERVICE = uuid16(0xffe0);
+const CHAR_RX = uuid16(0xffe1);
+const CHAR_TX = uuid16(0xffe2);
 const CHUNK = 16;
 const UART_BAUD = 38400;          // the module <-> Nano speed (BT_BAUD in diorama.ino)
 const GAP_SCALE = 0.6;
