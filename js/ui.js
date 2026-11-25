@@ -124,7 +124,12 @@ async function connect() {
     if (DEMO) {
       link = new SimLink();
     } else {
-      if (!bluetoothAvailable()) { showNotice(); return; }
+      if (!canConnect()) {
+        showNotice();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        toast(IS_IOS ? "Sorry, iPhone and iPad can't connect to the diorama. Use an Android phone or a computer." : 'This browser cannot use Bluetooth. Use Chrome or Edge.', 6000);
+        return;
+      }
       link = new BleLink();
       setStatus('Choose the diorama in the list…');
       await link.connect();
@@ -153,7 +158,7 @@ async function connect() {
     link = null; ob = null;
     if (!cancelled) {
       if (link && link.stage === 'choosing the device') {
-        toast('Could not open the Bluetooth list. Check that Bluetooth is on and this browser is allowed to use it (iPhone: Settings → Bluefy → Bluetooth). Details at the top of the page.', 9000);
+        toast('Could not open the Bluetooth list. Check that Bluetooth is on and this browser is allowed to use it. Details at the top of the page.', 9000);
       } else {
         toast('Could not connect. If the diorama is not in the list, someone else is using it. Try again in a minute.', 6000);
       }
@@ -216,11 +221,15 @@ function updateCountdown() {
   }
 }
 
+// iPhone / iPad (iPads report themselves as a Mac with a touch screen). Even Web Bluetooth
+// browsers there (Bluefy) could not connect to this module, so iOS is not supported.
+const IS_IOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const canConnect = () => !IS_IOS && bluetoothAvailable();
+
 function showNotice() {
   const n = $('#notice');
-  const ios = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-  if (ios) {
-    n.innerHTML = 'iPhone and iPad browsers cannot use Bluetooth from a web page. Install the free <strong>Bluefy</strong> browser from the App Store and open this page in it. You can still look around and try the <a href="?demo">demo</a> here.';
+  if (IS_IOS) {
+    n.innerHTML = '<strong>Sorry, this doesn\'t work on iPhone or iPad.</strong> Apple devices can\'t connect to the diorama. Please use an <strong>Android</strong> phone (Chrome) or a computer with Chrome or Edge. You can still look around and try the <a href="?demo">demo</a> here.';
   } else {
     n.innerHTML = 'This browser cannot use Bluetooth. Open this page in <strong>Chrome</strong> (Android, Windows, Mac) or <strong>Edge</strong>. You can still try the <a href="?demo">demo</a>.';
   }
@@ -710,7 +719,7 @@ async function playShowFromEditor(from) {
 
 // ------------------------------------------------------------------------------------ start
 async function main() {
-  if (!DEMO && !bluetoothAvailable()) showNotice();
+  if (!DEMO && !canConnect()) showNotice();
   if (DEMO) { $('#demo-link').textContent = 'Leave the demo'; $('#demo-link').href = location.pathname; setStatus('Demo: tap Connect'); }
   $('#connect').addEventListener('click', connect);
   setupLive();

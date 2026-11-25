@@ -8,7 +8,7 @@
 
 import { Engine } from './engine.js';
 
-// Full 128-bit IDs: Chrome also takes the short numbers (0xFFE0), but Bluefy on iPhone may not.
+// Full 128-bit IDs: Chrome also takes the short numbers (0xFFE0), other browsers may not.
 const uuid16 = (n) => `0000${n.toString(16)}-0000-1000-8000-00805f9b34fb`;
 const SERVICE = uuid16(0xffe0);
 const CHAR_RX = uuid16(0xffe1);
