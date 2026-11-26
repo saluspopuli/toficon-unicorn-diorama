@@ -205,3 +205,8 @@ canvas.tl { display: block; width: 100%; touch-action: none; }
 .log-time { font-variant-numeric: tabular-nums; color: var(--text-2); }
 .log-dev { overflow-wrap: anywhere; }
 .log-len { color: var(--text-2); font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+
+/* "choose Unicorn Diorama" hint under the header */
+.connect-hint { max-width: 760px; margin: 12px auto 0; font-size: 14px; color: var(--text-2); }
+.connect-hint strong { color: var(--text); }
+@media (max-width: 791px) { .connect-hint { margin: 12px 16px 0; } }

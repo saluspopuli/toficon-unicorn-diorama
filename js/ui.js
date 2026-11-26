@@ -109,6 +109,8 @@ function setStatus(text, on = false) {
   const s = $('#status');
   s.textContent = text;
   s.classList.toggle('on', on);
+  // "choose Unicorn Diorama" hint: only while not connected, on a device that can connect
+  $('#connect-hint').hidden = on || DEMO || !canConnect();
 }
 
 function toast(msg, ms = 3500) {
@@ -134,7 +136,7 @@ async function connect() {
         return;
       }
       link = new BleLink();
-      setStatus('Choose the diorama in the list…');
+      setStatus('Choose “Unicorn Diorama” in the list…');
       await link.connect();
     }
     link.onDisconnect = () => onDisconnected();
@@ -784,6 +786,7 @@ async function playShowFromEditor(from) {
 // ------------------------------------------------------------------------------------ start
 async function main() {
   if (!DEMO && !canConnect()) showNotice();
+  $('#connect-hint').hidden = DEMO || !canConnect();
   if (DEMO) { $('#demo-link').textContent = 'Leave the demo'; $('#demo-link').href = location.pathname; setStatus('Demo: tap Connect'); }
   $('#connect').addEventListener('click', connect);
   setupLive();
