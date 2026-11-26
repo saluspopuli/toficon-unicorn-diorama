@@ -8,6 +8,7 @@ import { Player } from './player.js';
 import { Editor, audioPeaks } from './editor.js';
 import { Preview } from './preview.js';
 import { loadConfig, saveConfig, checkPin, normalize, online, DEFAULTS } from './config.js';
+import { logConnect, logEnd, loadLog, clearLog, SHOW_LAST } from './log.js';
 
 const $ = (s) => document.querySelector(s);
 const params = new URLSearchParams(location.search);
@@ -44,6 +45,8 @@ const live = store.get('diorama.live', null) || idleLive(null);
 const saveLive = () => store.set('diorama.live', live);
 
 let link = null, ob = null;
+let session = null;      // {start, id: Promise<log entry id>} while connected
+let endReason = null;    // why the current connection is ending (for the log)
 let tab = 'live';
 let lastActivity = performance.now();
 let featured = [];       // [{title, description, file, data}]
@@ -148,6 +151,7 @@ async function connect() {
     btn.textContent = 'Disconnect';
     btn.classList.remove('primary');
     lastActivity = performance.now();
+    session = { start: Date.now(), id: DEMO ? Promise.resolve(null) : logConnect(isAdmin()) };
     resendAll();
   } catch (e) {
     console.warn(e);
@@ -173,15 +177,28 @@ async function connect() {
   }
 }
 
-function disconnect() {
+function disconnect(reason = 'left') {
+  endReason = endReason || reason;
   player.stop();
   if (link) link.disconnect();
   onDisconnected();
 }
 
+// how long the visitor stayed and why it ended, added to their log entry
+function endSession(reason) {
+  if (!session) return;
+  const s = session;
+  session = null;
+  const secs = (Date.now() - s.start) / 1000;
+  s.id.then((id) => logEnd(id, secs, reason));
+}
+window.addEventListener('pagehide', () => endSession('closed'));
+
 function onDisconnected() {
   if (!link && !ob) return;
   const timeUp = deadline !== null && performance.now() >= deadline - 3000;
+  endSession(timeUp ? 'time' : endReason || 'lost');
+  endReason = null;
   link = null; ob = null;
   deadline = null;
   if (player.playing) player.stop();
@@ -196,7 +213,7 @@ function onDisconnected() {
 function lostLink(e) {
   console.warn(e);
   if (!(deadline !== null && performance.now() >= deadline - 3000)) toast('Lost the connection to the diorama.');
-  disconnect();
+  disconnect('lost');
 }
 
 function startCountdown() {
@@ -246,7 +263,7 @@ setInterval(async () => {
   if (player.playing) { lastActivity = performance.now(); return; }
   const inactivity = (cfg ? cfg.inactivityS : DEFAULTS.inactivityS) * 1000;
   if (!OWNER && !DEMO && !isAdmin() && inactivity && performance.now() - lastActivity > inactivity) {
-    disconnect();
+    disconnect('idle');
     toast('Disconnected so the next person can have a go. Tap Connect to play again.', 6000);
     return;
   }
@@ -364,6 +381,7 @@ function showAdminTab() {
   fillAdmin(cfg || normalize(null));
   renderFeatured();
   setTab('admin');
+  refreshLog();
 }
 
 function lockAdmin() {
@@ -418,7 +436,53 @@ function readAdmin() {
   });
 }
 
+// ------------------------------------------------------------------------- connection log
+const END_TEXT = { left: 'Disconnected', time: 'Time limit', idle: 'Inactive', lost: 'Lost link', closed: 'Closed page' };
+const pad2 = (n) => String(n).padStart(2, '0');
+
+async function refreshLog() {
+  const box = $('#a-log');
+  $('#a-log-status').textContent = 'Loading…';
+  try {
+    const entries = await loadLog();
+    const today = new Date().toDateString();
+    const nToday = entries.filter((e) => new Date(e.t).toDateString() === today && !e.admin).length;
+    $('#a-log-status').textContent = entries.length
+      ? `${nToday} visitor${nToday === 1 ? '' : 's'} today · ${entries.length >= SHOW_LAST ? 'latest ' + SHOW_LAST : entries.length} in total`
+      : 'Nobody has connected yet.';
+    box.innerHTML = '';
+    let day = '';
+    for (const e of entries) {
+      const d = new Date(e.t);
+      if (d.toDateString() !== day) {
+        day = d.toDateString();
+        const h = document.createElement('div');
+        h.className = 'log-day';
+        h.textContent = d.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+        box.append(h);
+      }
+      const row = document.createElement('div');
+      row.className = 'log-row';
+      const len = typeof e.len === 'number' ? fmt(e.len) : '—';
+      const end = e.end ? END_TEXT[e.end] || e.end : (Date.now() - e.t < 15 * 60 * 1000 ? 'Connected?' : '');
+      row.innerHTML = '<span class="log-time"></span><span class="log-dev"></span><span class="log-len"></span>';
+      row.children[0].textContent = `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+      row.children[1].textContent = (e.admin ? 'Admin · ' : '') + (e.dev || 'Unknown');
+      row.children[2].textContent = end ? `${len} · ${end}` : len;
+      box.append(row);
+    }
+  } catch (e) {
+    $('#a-log-status').textContent = e.message;
+  }
+}
+
 function setupAdmin() {
+  $('#a-log-refresh').addEventListener('click', refreshLog);
+  $('#a-log-clear').addEventListener('click', async () => {
+    if (!confirm('Delete the whole connection log? This cannot be undone.')) return;
+    try { await clearLog(adminPin); toast('Log cleared.'); } catch (e) { toast(e.message, 6000); }
+    refreshLog();
+  });
   $('#a-uni').addEventListener('input', (e) => ($('#a-uni-o').textContent = e.target.value + '%'));
   $('#a-sh').addEventListener('input', (e) => ($('#a-sh-o').textContent = e.target.value + '%'));
   $('#a-lock').addEventListener('click', lockAdmin);

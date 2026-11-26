@@ -197,3 +197,11 @@ canvas.tl { display: block; width: 100%; touch-action: none; }
 @media (min-width: 700px) {
   .preview-card { max-height: 340px; }
 }
+
+/* admin: connection log */
+.log { max-height: 420px; overflow-y: auto; margin: 6px 0; }
+.log-day { font-size: 12px; font-weight: 600; color: var(--text-2); text-transform: uppercase; letter-spacing: .04em; padding: 10px 0 4px; border-bottom: 1px solid var(--line); }
+.log-row { display: grid; grid-template-columns: 44px 1fr auto; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--line); font-size: 13px; align-items: baseline; }
+.log-time { font-variant-numeric: tabular-nums; color: var(--text-2); }
+.log-dev { overflow-wrap: anywhere; }
+.log-len { color: var(--text-2); font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
